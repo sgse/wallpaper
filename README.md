@@ -2,4 +2,4 @@
 Some Artwork, for free non-commercial use.
 
 
-![Manjaro](https://github.com/sgse/wallpaper/blob/master/manjaro-star-sgs.png)
+https://raw.githubusercontent.com/sgse/wallpaper/master/1920x1080/m-a-i-b-04-sgs.png
