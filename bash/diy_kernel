@@ -1,0 +1,219 @@
+#!/bin/bash
+# - 07.03.2018 -
+#---- diy_kernel ---- Do it yourself_Kernel ----
+# Für Linux Mint
+# ${0##*/} Programname
+# ${0%/*} Verzeichnis = verz=“${0%/*}“
+
+
+set -x
+
+Hilfe(){
+  echo "${0##*/} ist Dein automatisierter Kernelbauer. "
+  echo "Hilfe für ${0##*/} gibt es nicht :-D"
+}
+test "${1}" = "-h" -o "${1}" = "-help" -o "${1}" = "--help" && Hilfe
+
+Exit(){
+    echo "$0: $2" >&2
+    exit "$1"
+}
+
+if ! zenity --question \
+	--title "- DIY Kernel -"  \
+	--width='700' \
+	--ok-label="Ja"  \
+	--cancel-label="Nein" \
+	--icon-name='system-software-update' \
+	--text "Dein *DIY-Kernel* setzt voraus, dass du weißt was du tust.\\n\\n\
+<span color='#ff0000'><b>Benutzung auf eigene Gefahr.</b></span>\\n\\n\
+<a href='https://www.linuxmintusers.de/index.php?topic=47468.0'>Hilfe</a>\\n\\n\
+<a href='https://www.linuxmintusers.de/index.php?topic=46911'>\
+Tutorial: Kernel selbst kompilieren</a>\\n\\n\\n
+<span size='small'>\"Niemand weiß, was er kann, bis er es probiert hat...\"</span>\\n\\n\\n\\n\
+<span size='xx-large'><span  color='#ff0000'><b>Weiter?</b></span></span>" 2>/dev/null
+	then
+		exit 0
+	else
+		echo "Weiter geht's."
+fi
+#exit 0
+url_kernelinfo='https://www.kernel.org/'
+
+wget_timeout=10
+
+workdir="$HOME/kernel_build"
+
+patchdir="$workdir/kernel_gcc_patch"
+
+ak=$(uname -r)
+
+if ! kernelinfo="$( wget -nv -T $wget_timeout "$url_kernelinfo" -O- )"
+then
+    Exit 1 'Fehler beim Download der Kernelinfos'
+fi
+
+if ! version="$( grep -A 1 'id="latest_link"' <<< "$kernelinfo" | grep -Po '(?<=\.tar\.xz">)[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}(?=</a>)' )"
+then
+    Exit 2 'Fehler beim Ermitteln der Versionsnummer'
+fi
+
+echo "Neuester stabiler Kernel ist: $version"
+
+echo "Aktuell laufender Kernel ist: $ak"
+
+current_kernel="${ak//-*/}"
+
+if (( $( printf "%d%02d%02d" ${current_kernel//./ } ) >= $( printf "%d%02d%02d" ${version//./ } ) ))
+	then
+	if ! zenity --question \
+	--width='700' \
+	--timeout='30' \
+	--ok-label="Ja" \
+	--cancel-label="Nein" \
+	--icon-name='system-help' \
+	--title "Aktuell installiert - $ak" \
+	--text "<b>Aktueller geht nicht.\\n\\n\
+Latest stable, auf kernel.org, ist $version.\\n\\n\
+Abbruch des Scripts erfolgt in 30 Sekunden. \
+\\n\\n<span color='#ff0000'>                                        \
+<span size='xx-large'>Download dennoch starten?</span></span></b>" 2>/dev/null
+	then
+				exit 0
+	else
+				echo 'Download genehmigt'
+	fi
+fi
+
+if ! [ -d "$workdir" ]
+then
+    if ! mkdir "$workdir"
+    then
+        Exit 3 'Fehler beim Erzeugen eines Arbeitsordners'
+    fi
+fi
+
+
+if ! [ -d "$patchdir" ]
+then
+    if ! mkdir "$patchdir"
+    then
+        Exit 31 'Fehler beim Erzeugen des Patchordners'
+    fi
+fi
+
+if ! cd "$workdir"
+then
+    Exit 4 'Fehler beim Wechsel in den Arbeitsordner'
+fi
+
+echo "Arbeitsordner ist: $workdir"
+
+if ! zenity --question \
+		--width='700' \
+		--ok-label="Ja" \
+		--cancel-label="Abbruch" \
+		--title "Aktuell installiert - $ak" \
+		--text "\\n\\n<b>Download von Kernel $version starten?</b>" 2>/dev/null
+		then
+				exit 0
+fi
+
+if ! wget https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-"$version".tar.xz
+then
+	Exit 5 'Fehler beim Download der Kernels'
+fi
+
+echo "Die Datei linux-$version.tar.xz wird entpackt."
+
+if ! tar xf linux-"$version".tar.xz
+then
+	Exit 6 "Fehler beim entpacken  von linux-$version.tar.xz"
+fi
+
+echo "Wechsel in den Ordner $PWD/linux-$version"
+
+if ! cd "$workdir/linux-$version"
+then
+	Exit 7 "Fehler beim Wechsel in den Ordner $PWD/linux-$version"
+fi
+
+echo "Die .config wird aus der vorhandenen config-$ak erstellt"
+
+
+if ! zenity --question \
+		--ok-label="Ja" \
+		--cancel-label="Abbruch" \
+		--title "Aktuell installiert - $ak" \
+		--text "\\n\\n<b>Option:\\n\\nWenn der Kernel gepatcht werden soll muss der Ordner    \\n\\n\
+$patchdir  \\n\\neine *.patch Datei enthalten.\\n\\nMit oder ohne patch weiter?</b>" 2>/dev/null
+		then
+				exit 0
+fi
+
+if ! patch -p1 < ../kernel_gcc_patch/*.patch
+then
+	echo "Kein *.patch in $patchdir vorhanden, kein Problem, weiter"
+	else
+    echo 'Kernel wird gepatcht'
+fi
+
+if ! cp /boot/config-"$ak" .config
+then
+	Exit 8 'Fehler beim Erzeugen der .config'
+fi
+
+if ! zenity --question \
+		--width='700' \
+		--ok-label="Ja" \
+		--cancel-label="Abbruch" \
+		--title "Aktuell installiert - $ak" \
+		--text "\\n\\n<b>Kernel $version bauen?</b>" 2>/dev/null
+		then
+				exit 0
+fi
+
+if ! sed -i 's/CONFIG_DEBUG_INFO=y/CONFIG_DEBUG_INFO=n/g' .config
+then
+	Exit 9 'Fehler, .config konnte nicht erstellt werden'
+fi
+
+if ! yes '' | make oldconfig
+then
+	Exit 10 'Fehler: make oldconfig fehlgeschlagen'
+fi
+#make menuconfig
+d=$(printf %02d ${version//./ })
+
+if ! make clean
+then
+	Exit 11 'Fehler: Konnte nicht durchwischen'
+fi
+
+if ! make -j '$(nproc) bindeb-pkg LOCALVERSION='-$d
+then
+		Exit 12 'Kernel backen fehlgeschlagen'
+fi
+
+if ! cd '$workdir'
+then
+    Exit 13 'Fehler beim Wechsel in den Arbeitsordner'
+fi
+
+if ! zenity --question \
+		--width='700' \
+		--timeout='30' \
+		--ok-label='Ja' \
+		--cancel-label='Nein' \
+		--title 'Aktuell installiert - $ak' \
+		--text '<b>Kernel linux-image-'$version-$d'-1 installieren?</b>' 2>/dev/null
+		then
+				exit 0
+fi
+if ! gksudo --message 'Für die Installation des Kernel werden Rootrechte benötigt.Passwort eingeben oder [Abbrechen] drücken.' -- tee '${launcher}'
+		then
+				exit 0
+		else
+				dpkg -i linux-headers-* linux-image-*
+fi
+# sudo dpkg -i linux-headers-* linux-image-*
