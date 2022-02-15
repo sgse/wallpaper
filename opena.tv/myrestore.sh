@@ -15,5 +15,5 @@ opkg install htop nano mc hdparm # smartmontools # unknown ???
 cp /hdd/vu+bilder/rc.png /usr/share/enigma2/rc_models/vu3/rc.png
 cp /hdd/vu+bilder/remote.html /usr/share/enigma2/rc_models/vu3/remote.html
 cp /hdd/vu+bilder/rcpositions.xml /usr/share/enigma2/rc_models/rcpositions.xml
-cp /hdd/vu+bilder/vuduo2.png usr/share/enigma2/vuduo2.png
+cp /hdd/vu+bilder/vuduo2.png /usr/share/enigma2/vuduo2.png
 echo "done"
