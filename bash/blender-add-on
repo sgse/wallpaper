@@ -1,0 +1,22 @@
+#!/bin/bash
+#
+
+Version=3.6
+User=sgs
+
+echo "Check your .zip files :-)"
+
+ls Bilder/Blender/Add-ons/
+
+while true; do
+    read -p "Continue? " yn
+    case $yn in
+        [Yy]* ) rm -R /home/$User/.config/blender/$Version/scripts/addons/*.*;;
+        [Nn]* ) exit;;
+        * ) echo "Please answer yes or no.";;
+    esac
+done
+
+unzip Bilder/Blender/Add-ons/*.zip  -d /home/$User/.config/blender/$Version/scripts/addons/
+
+echo "Done"
