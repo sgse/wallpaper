@@ -3,12 +3,12 @@
 
 Version=3.6
 User=sgs
-Add-ons=Bilder/Blender/Add-ons/
+Path=/home/$User/Bilder/Blender/Add-ons/
 
 
 echo "Check your .zip files :-)"
 
-ls $Add-ons
+ls $Path
 
 while true; do
     read -p "Continue? " yn
