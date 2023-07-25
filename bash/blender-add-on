@@ -1,12 +1,14 @@
 #!/bin/bash
-#
+# blender-add-on
 
 Version=3.6
 User=sgs
+Add-ons=Bilder/Blender/Add-ons/
+
 
 echo "Check your .zip files :-)"
 
-ls Bilder/Blender/Add-ons/
+ls $Add-ons
 
 while true; do
     read -p "Continue? " yn
